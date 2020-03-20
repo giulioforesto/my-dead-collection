@@ -74,43 +74,27 @@ var recordResults = function (doc, page) {
 
 var outputStream = fs.createWriteStream('output.csv');
 outputStream.write("Prenom;Nom;Nom JF;Commune;Age;Journal;Date;Lien\r\n");
-
-https.get(sourceURL, options, (res) => {
-	let data = '';
-	res.on('data', (chunk) => {
-	    data += chunk;
-	});
-	res.on('end', () => {
-		const dom = new JSDOM (data);
-
-		let doc = dom.window.document;
 		
-		recordResults(doc, '1'); // Page 1
-		
-		let k = 1;
-		let loop = setInterval ( () => { // Next pages if present
-			k++;
-			let i = k;
-			let pageURL = sourceURL + "&page=" + i;
-			https.get(pageURL, options, (pageRes) => {
-				let pageData = '';
-				pageRes.on('data', (chunk) => {
-					pageData += chunk;
-				});
-				pageRes.on('end', () => {
-					const pageDoc = (new JSDOM (pageData)).window.document;
-					if (pageDoc.querySelector('p.noresults')) {
-						if (k != 0) {console.log("Last page reached");}
-						k=0;
-						clearInterval(loop);
-					}
-					else { recordResults(pageDoc, i); }
-				});
-			}).on("error", (err) => {
-				console.log("Error: " + err.message);
-			});
-		}, 100);
+let k = 0;
+let loop = setInterval ( () => { // Next pages if present
+	k++;
+	let i = k;
+	let pageURL = sourceURL + "&page=" + i;
+	https.get(pageURL, options, (pageRes) => {
+		let pageData = '';
+		pageRes.on('data', (chunk) => {
+			pageData += chunk;
+		});
+		pageRes.on('end', () => {
+			const pageDoc = (new JSDOM (pageData)).window.document;
+			if (pageDoc.querySelector('p.noresults')) {
+				if (k != 0) {console.log("Last page reached");}
+				k=0;
+				clearInterval(loop);
+			}
+			else { recordResults(pageDoc, i); }
+		});
+	}).on("error", (err) => {
+		console.log("Error: " + err.message);
 	});
-}).on("error", (err) => {
-	console.log("Error: " + err.message);
-});
+}, 100);
