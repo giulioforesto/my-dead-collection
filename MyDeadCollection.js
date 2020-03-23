@@ -75,8 +75,8 @@ var recordResults = function (doc, page) {
 var outputStream = fs.createWriteStream('output.csv');
 outputStream.write("Prenom;Nom;Nom JF;Commune;Age;Journal;Date;Lien\r\n");
 		
-let k = 0;
-let loop = setInterval ( () => { // Next pages if present
+let k = 0; // Page iterator
+let loop = setInterval ( () => { // For each page. Interval is set in order not to send all the HTTP requests at the same time.
 	k++;
 	let i = k;
 	let pageURL = sourceURL + "&page=" + i;
@@ -87,7 +87,7 @@ let loop = setInterval ( () => { // Next pages if present
 		});
 		pageRes.on('end', () => {
 			const pageDoc = (new JSDOM (pageData)).window.document;
-			if (pageDoc.querySelector('p.noresults')) {
+			if (pageDoc.querySelector('p.noresults')) { // If page is empty raises the signal (k=0) to stop setInterval
 				if (k != 0) {console.log("Last page reached");}
 				k=0;
 				clearInterval(loop);
