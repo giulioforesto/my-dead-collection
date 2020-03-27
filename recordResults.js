@@ -1,4 +1,4 @@
-module.exports = function (outputStream, doc, dpt, year, month, page) {
+module.exports = function (outputStream, doc, dpt, year, month /*1-12*/, page) {
 	let lineIterator = 0;
 	doc.querySelectorAll('div.tableau_liste').forEach( (table, tIndex, tables) => {
 		let date = table.querySelector('div.titre').textContent.replace(/[^1-9\/]*/, "");
@@ -34,7 +34,7 @@ module.exports = function (outputStream, doc, dpt, year, month, page) {
 							console.log("Completed dpt " + dpt + ", year " + year + ", month " + month + ", page " + page);
 						}
 						if (page == 20 && lineNumber == 30) {
-							console.log("Warning: Reached maximum results number on dpt " + dpt + ", year " + year + ", month " + month + ". You will probably need to request this combination again, week by week, starting from " + date + ".");
+							console.log("Warning: Reached maximum results number on dpt " + dpt + ", year " + year + ", month " + month + ". You will probably need to request this combination again, starting from " + date + ".");
 						}
 					}
 				});

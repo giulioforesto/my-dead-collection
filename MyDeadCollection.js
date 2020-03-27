@@ -5,13 +5,18 @@ const fs = require('fs');
 const {JSDOM} = jsdom;
 
 const searchOptions = require(process.cwd()+'/searchOptions.js');
-const recordResults = require(process.cwd()+'/recordResults.js');
-const options = require(process.cwd()+'/connectOptions.js');
+const recordResults = require('./recordResults.js');
+const options = require('./connectOptions.js');
 
 const sourceURL = "https://www.libramemoria.com/avis?";
 
 const outputStream = fs.createWriteStream('output.csv');
 outputStream.write("Prenom;Nom;Nom JF;Commune;Age;Journal;Date;Lien\r\n");
+
+const DEFAULT_INTERVAL = searchOptions.data.defalutInterval; // ms
+const INTERVAL_DELTA = 5; // ms
+const ERR_SAMPLE_LENGTH = 50;
+const ERR_TOLERANCE = 0.2; // out of 1
 
 let searchURL = sourceURL
 	+ "&prenom=" + searchOptions.options.prenom
@@ -28,17 +33,15 @@ if (searchOptions.options.fin) {
 	endDate = new Date();
 }
 
+let reqQueue = [];
 
-let dptIterator = 0;
-let dptLoop = setInterval( () => {
-	let dpt = searchOptions.options.departement || searchOptions.data.departements[dptIterator];
-	if (searchOptions.options.departement || searchOptions.options.commune || dptIterator == searchOptions.data.departements.length-1) {
-		clearInterval(dptLoop);
-		dptLoop = false;
-	} else {
-		dptIterator++
-	}
-	let dateLoop = setInterval ( () => { // Interval is set in order not to send all the HTTP requests at the same time
+for (let dptIterator = 0;
+	dptIterator <= (searchOptions.options.departement || searchOptions.options.commune ? 0 : searchOptions.data.departements.length-1);
+	dptIterator++) {
+	let dpt = searchOptions.data.departements[dptIterator];
+	reqQueue["d"+dpt] = [];
+	reqQueue["d"+dpt].yearSum = 0
+	while (true) {
 		let month = searchDate.getMonth(); // 0-11
 		let year = searchDate.getFullYear();
 		
@@ -46,7 +49,6 @@ let dptLoop = setInterval( () => {
 		searchDate.setMonth(month+1);
 		searchDate.setDate(0);
 		let lastDayOfMonth;
-		
 		if (searchDate < endDate) {
 			lastDayOfMonth = searchDate.getDate();
 			//Increment the date iterator
@@ -54,59 +56,95 @@ let dptLoop = setInterval( () => {
 			searchDate.setMonth(month+1);
 		} else {
 			lastDayOfMonth = endDate.getDate();
-			clearInterval(dateLoop);
-			dateLoop = false;
+			searchDate = new Date(searchOptions.options.debut || searchOptions.data.startDate);
+			break;
 		}
-					
-		let dateURL = searchURL
-			+ "&departement=" + dpt
-			+ "&debut=1/" + (month+1) + "/" + year
-			+ "&fin=" + lastDayOfMonth + "/" + (month+1) + "/" + year;
-			
-		let page = 0; // Page iterator
-		let pageLoop = setInterval ( () => { // For each page
-			page++;
-			let localPage = page;
-			let pageURL = dateURL + "&page=" + localPage;
-			let cb = (pageRes) => {
-				let pageData = '';
-				pageRes.on('data', (chunk) => {
-					pageData += chunk;
-				});
-				pageRes.on('end', () => {
-					const pageDoc = (new JSDOM (pageData)).window.document;
-					if (pageDoc.querySelector('p.noresults')) { // If page is empty stop setInterval
-						if (page < 1000) {
-							page = 1000; // Raise the signal for log
-							console.log("Completed dpt " + dpt + ", year " + year + ", month " + (month+1));
-							if (!dateLoop) {
-								console.log("Completed dpt " + dpt);
-							}
-							if (!dptLoop) {
-								console.log("Completed")
-							}
+		reqQueue.push({
+			dpt: dpt,
+			year: year,
+			month: month,
+			lastDayOfMonth: lastDayOfMonth,
+			page: 1
+		});
+		if (!reqQueue["d"+dpt][year]) {
+			reqQueue["d"+dpt][year] = 1;
+			reqQueue["d"+dpt].yearSum++
+		} else {
+			reqQueue["d"+dpt][year]++
+		}
+	}
+}
+
+let interval = DEFAULT_INTERVAL;
+let errCounter = [];
+for (let i = 0; i < ERR_SAMPLE_LENGTH; i++) {
+	errCounter[i] = 0;
+}
+let qLoop;
+
+let loopFct = () => {
+	let reqOpts = reqQueue.shift();
+	if (reqOpts) {
+		let pageURL = searchURL
+			+ "&departement=" + reqOpts.dpt
+			+ "&debut=1/" + (reqOpts.month+1) + "/" + reqOpts.year
+			+ "&fin=" + reqOpts.lastDayOfMonth + "/" + (reqOpts.month+1) + "/" + reqOpts.year
+			+ "&page=" + reqOpts.page;
+		https.get(pageURL, options, (pageRes) => {
+			let pageData = '';
+			pageRes.on('data', (chunk) => {
+				pageData += chunk;
+			});
+			pageRes.on('end', () => {
+				const pageDoc = (new JSDOM (pageData)).window.document;
+				if (pageDoc.querySelector('p.noresults')) { // If page is empty 
+					console.log("Completed dpt " + reqOpts.dpt + ", year " + reqOpts.year + ", month " + (reqOpts.month+1));
+					if (--reqQueue["d"+reqOpts.dpt][reqOpts.year] <= 0) {
+						console.log("Completed dpt " + reqOpts.dpt + ", year " + reqOpts.year);
+						if (--reqQueue["d"+reqOpts.dpt].yearSum <= 0) {
+							console.log("Completed dpt " + reqOpts.dpt);
 						}
-						clearInterval(pageLoop);
 					}
-					else { recordResults(
+				}
+				else {
+					recordResults(
 						outputStream,
 						pageDoc,
-						dpt,
-						year,
-						month+1,
-						localPage); }
-				});
-			};
-			let onError = (err) => {
-				console.log("HTTP Error on URL: " + pageURL);
-				if (err.code == "ECONNRESET") {
-					console.log("Rertrying...");
-					https.get(pageURL, options, cb).on("error", onError);
-				} else {
-					console.log(err);
+						reqOpts.dpt,
+						reqOpts.year,
+						reqOpts.month+1, // 1-12
+						reqOpts.page
+					);
+					reqQueue.unshift({
+						dpt: reqOpts.dpt,
+						year: reqOpts.year,
+						month: reqOpts.month,
+						lastDayOfMonth: reqOpts.lastDayOfMonth,
+						page: reqOpts.page+1
+					});
 				}
-			};
-			https.get(pageURL, options, cb).on("error", onError);
-		}, 50);
-	}, 1000);
-}, 20000);
+				errCounter.shift();
+				errCounter.push(0);
+			});
+		}).on('error', (err) => {
+			console.log("HTTP Error on URL: " + pageURL);
+			if (err.code == "ECONNRESET") {
+				console.log("Rertrying...");
+				reqQueue.unshift(reqOpts);
+				errCounter.shift();
+				errCounter.push(1);
+				if (errCounter.reduce((sum, val) => {
+					return sum += val;
+				}) > ERR_TOLERANCE*ERR_SAMPLE_LENGTH) {
+					clearInterval(qLoop);
+					qLoop = setInterval(loopFct, interval += 5);
+					console.log("Slowed down!");
+				}
+			} else {
+				console.log(err);
+			}
+		});
+	}
+}
+
+qLoop = setInterval(loopFct,interval);
