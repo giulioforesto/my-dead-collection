@@ -13,7 +13,27 @@ const sourceURL = "https://www.libramemoria.com/avis?";
 const outputStream = fs.createWriteStream('output.csv');
 outputStream.write("Prenom;Nom;Nom JF;Commune;Age;Journal;Date;Lien\r\n");
 
-const DEFAULT_INTERVAL = searchOptions.data.defalutInterval; // ms
+let logStream;
+
+const MODE = searchOptions.data.mode;
+
+if (MODE == 'pkg') {
+	logStream = fs.createWriteStream('log.log');
+	logStream.write("Started at " + new Date() + "\r\n");
+}
+
+const log = (strToLog, exit) => {
+	console.log(strToLog);
+	if (MODE == 'pkg') {
+		logStream.write(strToLog + "\r\n", (err) => {
+			if (err) throw err;
+			if (exit) process.exit(1);
+		});
+	}
+};
+
+const DEFAULT_INTERVAL = searchOptions.data.defaultInterval; // ms
+const MAXIMUM_INTERVAL = 100; // ms
 const INTERVAL_DELTA = 5; // ms
 const ERR_SAMPLE_LENGTH = 50;
 const ERR_TOLERANCE = 0.2; // out of 1
@@ -98,17 +118,18 @@ let loopFct = () => {
 			pageRes.on('end', () => {
 				const pageDoc = (new JSDOM (pageData)).window.document;
 				if (pageDoc.querySelector('p.noresults')) { // If page is empty 
-					console.log("Completed dpt " + reqOpts.dpt + ", year " + reqOpts.year + ", month " + (reqOpts.month+1));
+					log("Completed dpt " + reqOpts.dpt + ", year " + reqOpts.year + ", month " + (reqOpts.month+1));
 					if (--reqQueue["d"+reqOpts.dpt][reqOpts.year] <= 0) {
-						console.log("Completed dpt " + reqOpts.dpt + ", year " + reqOpts.year);
+						log("Completed dpt " + reqOpts.dpt + ", year " + reqOpts.year);
 						if (--reqQueue["d"+reqOpts.dpt].yearSum <= 0) {
-							console.log("Completed dpt " + reqOpts.dpt);
+							log("Completed dpt " + reqOpts.dpt);
 						}
 					}
 				}
 				else {
 					recordResults(
 						outputStream,
+						logStream,
 						pageDoc,
 						reqOpts.dpt,
 						reqOpts.year,
@@ -127,21 +148,30 @@ let loopFct = () => {
 				errCounter.push(0);
 			});
 		}).on('error', (err) => {
-			console.log("HTTP Error on URL: " + pageURL);
-			if (err.code == "ECONNRESET") {
-				console.log("Rertrying...");
-				reqQueue.unshift(reqOpts);
-				errCounter.shift();
-				errCounter.push(1);
-				if (errCounter.reduce((sum, val) => {
-					return sum += val;
-				}) > ERR_TOLERANCE*ERR_SAMPLE_LENGTH) {
-					clearInterval(qLoop);
-					qLoop = setInterval(loopFct, interval += 5);
-					console.log("Slowed down!");
-				}
-			} else {
-				console.log(err);
+			log("HTTP Error on URL: " + pageURL);
+			switch (err.code) {
+				case "ECONNRESET":
+					if (interval > MAXIMUM_INTERVAL) {
+						log("Your internet connection is probably too slow.\r\nShutting down...", true);
+					}
+					log("Rertrying...");
+					reqQueue.unshift(reqOpts);
+					errCounter.shift();
+					errCounter.push(1);
+					if (errCounter.reduce((sum, val) => {
+						return sum += val;
+					}) > ERR_TOLERANCE*ERR_SAMPLE_LENGTH) {
+						clearInterval(qLoop);
+						qLoop = setInterval(loopFct, interval += 5);
+						log("Slowed down!");
+					}
+					break;
+				case "ENOTFOUND":
+					log(err.message);
+					log("You may not have an internet connection.\r\nShutting down...", true);
+					break;
+				default:
+					log(err);
 			}
 		});
 	}

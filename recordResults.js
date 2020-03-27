@@ -1,4 +1,4 @@
-module.exports = function (outputStream, doc, dpt, year, month /*1-12*/, page) {
+module.exports = function (outputStream, logStream, doc, dpt, year, month /*1-12*/, page) {
 	let lineIterator = 0;
 	doc.querySelectorAll('div.tableau_liste').forEach( (table, tIndex, tables) => {
 		let date = table.querySelector('div.titre').textContent.replace(/[^1-9\/]*/, "");
@@ -31,17 +31,17 @@ module.exports = function (outputStream, doc, dpt, year, month /*1-12*/, page) {
 					if (err) throw err;
 					else {
 						if (index == lines.length-1 && tIndex == tables.length-1) {
-							console.log("Completed dpt " + dpt + ", year " + year + ", month " + month + ", page " + page);
+							log("Completed dpt " + dpt + ", year " + year + ", month " + month + ", page " + page);
 						}
 						if (page == 20 && lineNumber == 30) {
-							console.log("Warning: Reached maximum results number on dpt " + dpt + ", year " + year + ", month " + month + ". You will probably need to request this combination again, starting from " + date + ".");
+							log("Warning: Reached maximum results number on dpt " + dpt + ", year " + year + ", month " + month + ". You will probably need to request this combination again, starting from " + date + ".");
 						}
 					}
 				});
 			}
 			catch (err) {
-				console.log(err);
-				console.log(line.outerHTML);
+				log(err);
+				log(line.outerHTML);
 			}
 		});
 	});
