@@ -8,20 +8,23 @@
 	
 	Format prenom : "Commence par". Ex. : "N" va trouver tous les prénoms débutant par N.
 	Format nom : "Commence par" sur Nom et Nom de jeune fille. Ex. : "N" va trouver tous les noms et noms de jeune fille débutant par N.
-	Format date : "MM/JJ/AAAA" (format anglais).
-	Format departement : "X" où X est le code du département à 2 ou 3 chiffres (pour les départements à 1 chiffre, précéder d'un 0).
-	Format commune : "X" où X est le code INSEE à 5 chiffres. S'il est renseigné, departement est ignoré.
-	Codes départements et communes disponibles ci-après.
+	Format date : "M/J/AAAA" (format anglais), les mois et les jours peuvent être à 1 ou 2 chiffres.
+	Format departement : "XX(X)", le code du département à 2 ou 3 chiffres (pour les départements à 1 chiffre, précéder d'un 0).
+	Format commune : "XXXXX", le code INSEE à 5 chiffres. S'il est renseigné, departement est ignoré.
+	Codes départements disponibles ci-après.
 	
 	Exemple :
 	
 	module.exports = {
-		prenom: "",
-		nom: "meier",
-		debut: "17/03/2020",
-		fin: "",
-		departement: "02",
-		commune: ""
+		options: {
+			prenom: "",
+			nom: "",
+			debut: "1/1/2015",
+			fin: "",
+			departement: "02",
+			commune: ""
+		},
+		data: /!\ DO NOT MODIFY
 	};
 */
 
@@ -34,7 +37,7 @@ module.exports = {
 		departement: "",
 		commune: ""
 	},
-	data: {
+	data: { // DO NOT MODIFY
 		defaultInterval: 10, // ms
 		startDate: "1/1/2010",
 		departements: ["01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","21","22","23","24","25","26","27","28","29","2A","2B","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","971","972","973","974","976"]
