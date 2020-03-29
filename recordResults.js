@@ -1,4 +1,4 @@
-module.exports = function (outputStream, logStream, doc, dpt, year, month /*1-12*/, page) {
+module.exports = function (outputStream, doc, dpt, year, month /*1-12*/, page) {
 	let lineIterator = 0;
 	doc.querySelectorAll('div.tableau_liste').forEach( (table, tIndex, tables) => {
 		let date = table.querySelector('div.titre').textContent.replace(/[^1-9\/]*/, "");

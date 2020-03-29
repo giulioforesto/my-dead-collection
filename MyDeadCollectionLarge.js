@@ -5,7 +5,6 @@ const fs = require('fs');
 const {JSDOM} = jsdom;
 
 const searchOptions = require(process.cwd()+'/searchOptions.js');
-const recordResults = require('./recordResults.js');
 const options = require('./connectOptions.js');
 
 const sourceURL = "https://www.libramemoria.com/avis?";
@@ -13,24 +12,34 @@ const sourceURL = "https://www.libramemoria.com/avis?";
 const outputStream = fs.createWriteStream('output.csv');
 outputStream.write("Prenom;Nom;Nom JF;Commune;Age;Journal;Date;Lien\r\n");
 
-let logStream;
-
 const MODE = searchOptions.data.mode;
 
-if (MODE == 'pkg') {
-	logStream = fs.createWriteStream('log.log');
-	logStream.write("Started at " + new Date() + "\r\n");
-}
-
-const log = (strToLog, exit) => {
-	console.log(strToLog);
-	if (MODE == 'pkg') {
-		logStream.write(strToLog + "\r\n", (err) => {
-			if (err) throw err;
-			if (exit) process.exit(1);
-		});
+class Logger {
+	constructor (MODE) {
+		this.exitCalled = false;
+		if (MODE == 'dev') {
+			this.log = (strToLog, exit) => {
+				console.log(strToLog);
+				if (exit) process.exit(1);
+			}
+		} else {
+			this.logStream = fs.createWriteStream('log.log');
+			this.logStream.write("Started at " + new Date() + "\r\n");
+			this.log = (strToLog, exit) => {
+				if (!this.exitCalled) {
+					if (exit) this.exitCalled = true;
+					console.log(strToLog);
+					this.logStream.write(strToLog + "\r\n", (err) => {
+						if (err) throw err;
+						if (exit) process.exit(1);
+					});
+				}
+			}
+		}
 	}
-};
+}
+const { log } = new Logger(MODE);
+const recordResults = require('./recordResults.js');
 
 const DEFAULT_INTERVAL = searchOptions.data.defaultInterval; // ms
 const MAXIMUM_INTERVAL = 100; // ms
@@ -129,7 +138,6 @@ let loopFct = () => {
 				else {
 					recordResults(
 						outputStream,
-						logStream,
 						pageDoc,
 						reqOpts.dpt,
 						reqOpts.year,
