@@ -6,40 +6,12 @@ const {JSDOM} = jsdom;
 
 const searchOptions = require(process.cwd()+'/searchOptions.js');
 const options = require('./connectOptions.js');
+const recordResults = require('./recordResults.js');
 
 const sourceURL = "https://www.libramemoria.com/avis?";
 
 const outputStream = fs.createWriteStream('output.csv');
 outputStream.write("Prenom;Nom;Nom JF;Commune;Age;Journal;Date;Lien\r\n");
-
-const MODE = searchOptions.data.mode;
-
-class Logger {
-	constructor (MODE) {
-		this.exitCalled = false;
-		if (MODE == 'dev') {
-			this.log = (strToLog, exit) => {
-				console.log(strToLog);
-				if (exit) process.exit(1);
-			}
-		} else {
-			this.logStream = fs.createWriteStream('log.log');
-			this.logStream.write("Started at " + new Date() + "\r\n");
-			this.log = (strToLog, exit) => {
-				if (!this.exitCalled) {
-					if (exit) this.exitCalled = true;
-					console.log(strToLog);
-					this.logStream.write(strToLog + "\r\n", (err) => {
-						if (err) throw err;
-						if (exit) process.exit(1);
-					});
-				}
-			}
-		}
-	}
-}
-const { log } = new Logger(MODE);
-const recordResults = require('./recordResults.js');
 
 const DEFAULT_INTERVAL = searchOptions.data.defaultInterval; // ms
 const MAXIMUM_INTERVAL = 100; // ms
@@ -127,11 +99,11 @@ let loopFct = () => {
 			pageRes.on('end', () => {
 				const pageDoc = (new JSDOM (pageData)).window.document;
 				if (pageDoc.querySelector('p.noresults')) { // If page is empty 
-					log("Completed dpt " + reqOpts.dpt + ", year " + reqOpts.year + ", month " + (reqOpts.month+1));
+					console.log("Completed dpt " + reqOpts.dpt + ", year " + reqOpts.year + ", month " + (reqOpts.month+1));
 					if (--reqQueue["d"+reqOpts.dpt][reqOpts.year] <= 0) {
-						log("Completed dpt " + reqOpts.dpt + ", year " + reqOpts.year);
+						console.log("Completed dpt " + reqOpts.dpt + ", year " + reqOpts.year);
 						if (--reqQueue["d"+reqOpts.dpt].yearSum <= 0) {
-							log("Completed dpt " + reqOpts.dpt);
+							console.log("Completed dpt " + reqOpts.dpt);
 						}
 					}
 				}
@@ -156,13 +128,15 @@ let loopFct = () => {
 				errCounter.push(0);
 			});
 		}).on('error', (err) => {
-			log("HTTP Error on URL: " + pageURL);
 			switch (err.code) {
 				case "ECONNRESET":
 					if (interval > MAXIMUM_INTERVAL) {
-						log("Your internet connection is probably too slow.\r\nShutting down...", true);
+						console.error("HTTP Error on URL: " + pageURL);
+						console.error("Your internet connection is probably too slow.\r\nShutting down...");
+						process.exit(1);
 					}
-					log("Rertrying...");
+					console.log("HTTP Error on URL: " + pageURL);
+					console.log("Rertrying...");
 					reqQueue.unshift(reqOpts);
 					errCounter.shift();
 					errCounter.push(1);
@@ -171,15 +145,17 @@ let loopFct = () => {
 					}) > ERR_TOLERANCE*ERR_SAMPLE_LENGTH) {
 						clearInterval(qLoop);
 						qLoop = setInterval(loopFct, interval += 5);
-						log("Slowed down!");
+						console.log("Slowed down!");
 					}
 					break;
 				case "ENOTFOUND":
-					log(err.message);
-					log("You may not have an internet connection.\r\nShutting down...", true);
+					console.error("HTTP Error on URL: " + pageURL);
+					console.error(err.message);
+					console.error("You may not have an internet connection.\r\nShutting down...");
+					process.exit(1);
 					break;
 				default:
-					log(err);
+					console.log(err);
 			}
 		});
 	}

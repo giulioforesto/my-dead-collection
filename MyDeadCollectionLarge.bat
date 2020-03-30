@@ -1,0 +1,1 @@
+worker.exe 2> log.log

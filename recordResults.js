@@ -31,17 +31,17 @@ module.exports = function (outputStream, doc, dpt, year, month /*1-12*/, page) {
 					if (err) throw err;
 					else {
 						if (index == lines.length-1 && tIndex == tables.length-1) {
-							log("Completed dpt " + dpt + ", year " + year + ", month " + month + ", page " + page);
+							console.log("Completed dpt " + dpt + ", year " + year + ", month " + month + ", page " + page);
 						}
 						if (page == 20 && lineNumber == 30) {
-							log("Warning: Reached maximum results number on dpt " + dpt + ", year " + year + ", month " + month + ". You will probably need to request this combination again, starting from " + date + ".");
+							console.log("Warning: Reached maximum results number on dpt " + dpt + ", year " + year + ", month " + month + ". You will probably need to request this combination again, starting from " + date + ".");
 						}
 					}
 				});
 			}
 			catch (err) {
-				log(err);
-				log(line.outerHTML);
+				console.log(err);
+				console.log(line.outerHTML);
 			}
 		});
 	});
