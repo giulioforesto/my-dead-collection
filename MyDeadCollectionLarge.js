@@ -156,6 +156,7 @@ let loopFct = () => {
 					break;
 				default:
 					console.log(err);
+					console.error(err);
 			}
 		});
 	}

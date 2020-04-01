@@ -34,7 +34,9 @@ module.exports = function (outputStream, doc, dpt, year, month /*1-12*/, page) {
 							console.log("Completed dpt " + dpt + ", year " + year + ", month " + month + ", page " + page);
 						}
 						if (page == 20 && lineNumber == 30) {
-							console.log("Warning: Reached maximum results number on dpt " + dpt + ", year " + year + ", month " + month + ". You will probably need to request this combination again, starting from " + date + ".");
+							let warningMsg = "Warning: Reached maximum results number on dpt " + dpt + ", year " + year + ", month " + month + ". You will probably need to request this combination again, starting from " + date + ".";
+							console.log(warningMsg);
+							console.error(warningMsg);
 						}
 					}
 				});
