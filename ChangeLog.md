@@ -1,9 +1,13 @@
-#Change log of My Dead Collection
+# Change log of My Dead Collection
 
 ## Coming next
 * Adding resume after failure feature.
-* Adding automatic recording after "maximum pages" warning
 * Feel free to make suggestions!
+
+## vb.2
+06/04/2020
+* Added automatic recording after "maximum pages" warning
+* Corrected a few minor bugs : department handling when specified in searchOptions, last month handling when reaching endDate, process exiting after queue is empty, first day handling if specified in searchOptions, ignoring duplicate values.
 
 ## vb.1.2
 01/03/2020

@@ -1,7 +1,7 @@
 # My Dead Collection
 
 ## Version
-Beta 1.1
+Beta 2
 ## Description
 Ce programme récupère sur le site [libramemoria.com/avis] les avis de décès en fonction des critères de recherche spécifiés par l'utilisateur.
 ## Utilisation
