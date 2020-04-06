@@ -1,7 +1,7 @@
 module.exports = function (outputStream, doc, dpt, year, month /*1-12*/, page) {
 	let lineIterator = 0;
 	doc.querySelectorAll('div.tableau_liste').forEach( (table, tIndex, tables) => {
-		let date = table.querySelector('div.titre').textContent.replace(/[^1-9\/]*/, "");
+		let date = table.querySelector('div.titre').textContent.replace(/[^0-9\/]*/g, "");
 		table.querySelectorAll('div[class=ligne]').forEach( (line, index, lines) => {
 			try {
 				var lineNumber = ++lineIterator;
@@ -17,7 +17,7 @@ module.exports = function (outputStream, doc, dpt, year, month /*1-12*/, page) {
 				
 				result[0] = nomCellArray[0]; // Prénom
 				result[1] = nomCellArray[1]; // Nom
-				result[2] = nomCellArray[2] ? nomCellArray[2].replace(/née /,"") : ""; // Date de naissance
+				result[2] = nomCellArray[2] ? nomCellArray[2].replace(/née /,"") : ""; // Nom de jeune fille
 				result[3] = ""; // Ville(s)
 				line.querySelectorAll('div.ville > a').forEach( (commune) => {
 					result[3] += (result[3] ? "," : "") + commune.textContent;
