@@ -10,4 +10,10 @@ MyDeadCollectionLarge est optimisé pour les recherches retournant plus de 600 r
 3. Exécuter MyDeadCollectionLarge.bat en veillant à ce que searchOptions.js et worker.exe soient dans le même dossier que l'exécutable.
 4. Les résultats sont disponibles au format CSV dans **output.csv** dans le même dossier.
 
-/!\ **Attention :** Si un fichier output.csv existe déjà, il sera écrasé par l'exécution du programme.
+⚠ **Attention :** Si un fichier output.csv existe déjà, il sera écrasé par l'exécution du programme.
+
+## Développement
+### Build
+```shell
+pkg --targets win MyDeadCollectionLarge.js -o worker.exe
+```
